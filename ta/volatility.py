@@ -178,29 +178,30 @@ class KeltnerChannel(IndicatorMixin):
 
     def __init__(
             self, high: pd.Series, low: pd.Series, close: pd.Series, n: int = 14, fillna: bool = False,
-            ov: bool = True):
+            ov: bool = True, mult: float = 2.0):
         self._high = high
         self._low = low
         self._close = close
         self._n = n
         self._fillna = fillna
         self._ov = ov
+        self.mult = mult
         self._run()
 
     def _run(self):
         if self._ov:
             self._tp = ((self._high + self._low + self._close) / 3.0).rolling(self._n, min_periods=0).mean()
-            self._tp_high = (((4 * self._high) - (2 * self._low) + self._close) / 3.0).rolling(
+            self._tp_high = (((4 * self._high) - (self.mult * self._low) + self._close) / 3.0).rolling(
                 self._n, min_periods=0).mean()
-            self._tp_low = (((-2 * self._high) + (4 * self._low) + self._close) / 3.0).rolling(
+            self._tp_low = (((-self.mult * self._high) + (4 * self._low) + self._close) / 3.0).rolling(
                 self._n, min_periods=0).mean()
         else:
             self._tp = self._close.ewm(span=self._n, min_periods=0, adjust=False).mean()
             atr = AverageTrueRange(
                 close=self._close, high=self._high, low=self._high, n=10, fillna=self._fillna
             ).average_true_range()
-            self._tp_high = self._tp + (2*atr)
-            self._tp_low = self._tp - (2*atr)
+            self._tp_high = self._tp + (self.mult*atr)
+            self._tp_low = self._tp - (self.mult*atr)
 
     def keltner_channel_mband(self) -> pd.Series:
         """Keltner Channel Middle Band
